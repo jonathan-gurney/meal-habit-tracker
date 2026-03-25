@@ -1,0 +1,274 @@
+:root {
+  color-scheme: dark;
+  font-family: "Manrope", sans-serif;
+  background:
+    radial-gradient(circle at top left, rgba(124, 92, 255, 0.22), transparent 35%),
+    radial-gradient(circle at top right, rgba(255, 122, 89, 0.18), transparent 30%),
+    linear-gradient(180deg, #090b10 0%, #10141d 100%);
+  color: #f5f7fb;
+  --panel: rgba(13, 17, 27, 0.82);
+  --panel-border: rgba(255, 255, 255, 0.08);
+  --text-soft: rgba(245, 247, 251, 0.68);
+  --shadow: 0 24px 80px rgba(0, 0, 0, 0.35);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  background: transparent;
+}
+
+button,
+input {
+  font: inherit;
+}
+
+.shell {
+  width: min(1240px, calc(100% - 32px));
+  margin: 0 auto;
+  padding: 48px 0 64px;
+}
+
+.hero {
+  display: grid;
+  grid-template-columns: 1.3fr 0.7fr;
+  gap: 24px;
+  align-items: end;
+  margin-bottom: 24px;
+}
+
+.hero__copy h1 {
+  font-size: clamp(2.8rem, 5vw, 5.4rem);
+  line-height: 0.96;
+  margin: 12px 0 16px;
+  max-width: 9ch;
+}
+
+.hero__copy p,
+.panel__header p,
+.stat span,
+.field span,
+.status,
+.metricCard__label {
+  color: var(--text-soft);
+}
+
+.eyebrow {
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  font-size: 0.75rem;
+  color: #9b87f5;
+}
+
+.hero__stats {
+  display: grid;
+  gap: 16px;
+}
+
+.stat,
+.panel {
+  background: var(--panel);
+  border: 1px solid var(--panel-border);
+  box-shadow: var(--shadow);
+  backdrop-filter: blur(18px);
+}
+
+.stat {
+  border-radius: 24px;
+  padding: 24px;
+}
+
+.stat strong {
+  display: block;
+  font-size: 2.6rem;
+  margin-top: 12px;
+}
+
+.layout {
+  display: grid;
+  grid-template-columns: 360px 1fr;
+  gap: 24px;
+}
+
+.panel {
+  border-radius: 28px;
+  padding: 24px;
+}
+
+.panel__header h2 {
+  margin: 0 0 8px;
+}
+
+.panel__header p {
+  margin: 0;
+}
+
+.panel--form {
+  display: grid;
+  gap: 22px;
+  align-content: start;
+}
+
+.field {
+  display: grid;
+  gap: 12px;
+}
+
+input[type="date"] {
+  border: 1px solid var(--panel-border);
+  background: rgba(255, 255, 255, 0.04);
+  color: #fff;
+  padding: 14px 16px;
+  border-radius: 16px;
+}
+
+.optionGrid,
+.timeframeRow,
+.cardGrid,
+.chartGrid {
+  display: grid;
+  gap: 12px;
+}
+
+.choice,
+.timePill,
+.primaryButton {
+  border: 1px solid transparent;
+  transition: transform 180ms ease, border-color 180ms ease, background 180ms ease;
+}
+
+.choice,
+.timePill {
+  background: rgba(255, 255, 255, 0.04);
+  color: #fff;
+}
+
+.choice {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  text-align: left;
+  border-radius: 18px;
+  padding: 14px 16px;
+}
+
+.choice:hover,
+.timePill:hover,
+.primaryButton:hover {
+  transform: translateY(-1px);
+}
+
+.choice--active,
+.timePill--active {
+  border-color: rgba(155, 135, 245, 0.55);
+  background: rgba(124, 92, 255, 0.18);
+}
+
+.choice__dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 999px;
+}
+
+.primaryButton {
+  border-radius: 18px;
+  padding: 16px 18px;
+  color: #0a0d13;
+  font-weight: 800;
+  background: linear-gradient(135deg, #f4d35e 0%, #ff7a59 100%);
+}
+
+.primaryButton:disabled {
+  opacity: 0.7;
+}
+
+.dashboard {
+  display: grid;
+  gap: 24px;
+}
+
+.timeframeRow {
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+}
+
+.timePill {
+  border-radius: 999px;
+  padding: 12px 16px;
+}
+
+.cardGrid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.metricCard strong {
+  display: block;
+  font-size: 2.3rem;
+  margin-top: 14px;
+}
+
+.chartGrid {
+  grid-template-columns: 1.4fr 1fr;
+}
+
+.chartWrap {
+  margin-top: 18px;
+}
+
+.entryList {
+  display: grid;
+  gap: 12px;
+}
+
+.entryRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 14px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.entryRow:last-child {
+  border-bottom: 0;
+}
+
+@media (max-width: 1080px) {
+  .hero,
+  .layout,
+  .chartGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .hero__copy h1 {
+    max-width: 12ch;
+  }
+}
+
+@media (max-width: 720px) {
+  .shell {
+    width: min(100% - 20px, 1240px);
+    padding-top: 28px;
+  }
+
+  .cardGrid,
+  .timeframeRow {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 520px) {
+  .cardGrid,
+  .timeframeRow {
+    grid-template-columns: 1fr;
+  }
+
+  .panel,
+  .stat {
+    border-radius: 22px;
+    padding: 20px;
+  }
+}
