@@ -1,0 +1,8 @@
+export const VALID_CATEGORIES = ["takeaway", "ate_out", "ate_home"];
+export const ALLOWED_DASHBOARD_RANGES = [7, 30, 90, 180, 365];
+
+export const categoryScore = {
+  ate_home: 1,
+  ate_out: 2,
+  takeaway: 3
+};
