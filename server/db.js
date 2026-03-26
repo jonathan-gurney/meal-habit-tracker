@@ -39,7 +39,7 @@ export const createEntryRepository = (db) => {
       LIMIT 8
     `),
     trackedDatesDesc: db.prepare(`
-      SELECT date
+      SELECT date, category
       FROM meal_entries
       ORDER BY date DESC
     `),

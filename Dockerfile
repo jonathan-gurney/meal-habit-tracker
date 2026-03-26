@@ -12,6 +12,7 @@ COPY package.json package-lock.json* ./
 RUN npm install --omit=dev
 COPY --from=build /app/dist ./dist
 COPY --from=build /app/server ./server
+COPY --from=build /app/shared ./shared
 RUN mkdir -p /app/data
 EXPOSE 3001
 CMD ["npm", "start"]

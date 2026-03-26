@@ -3,6 +3,7 @@ import {
   VALID_CATEGORIES,
   categoryScore
 } from "../constants.js";
+import { HOME_STREAK_BADGES } from "../../shared/badges.js";
 import { daysBetween, getDateRange, toIsoDate } from "../utils/date.js";
 
 const emptySummary = () => ({
@@ -67,6 +68,94 @@ const calculateStreak = (trackedRows, now) => {
   return streak;
 };
 
+const calculateEatHomeCurrentStreak = (trackedRows, now) => {
+  if (trackedRows.length === 0) {
+    return 0;
+  }
+
+  const today = new Date(now);
+  today.setHours(0, 0, 0, 0);
+  let expected = toIsoDate(today);
+  let index = 0;
+
+  if (trackedRows[0].date !== expected) {
+    const latest = new Date(`${trackedRows[0].date}T00:00:00`);
+    if (daysBetween(today, latest) !== 1) {
+      return 0;
+    }
+    expected = trackedRows[0].date;
+  }
+
+  let streak = 0;
+
+  while (index < trackedRows.length) {
+    const row = trackedRows[index];
+
+    if (row.date !== expected || row.category !== "ate_home") {
+      break;
+    }
+
+    streak += 1;
+    const current = new Date(`${row.date}T00:00:00`);
+    current.setDate(current.getDate() - 1);
+    expected = toIsoDate(current);
+    index += 1;
+  }
+
+  return streak;
+};
+
+const buildBadgeProgress = (trackedRows, now) => {
+  const chronologicalRows = [...trackedRows].reverse();
+  let currentRun = 0;
+  let longestRun = 0;
+  let homeDays = 0;
+  const earnedDates = new Map();
+  const rewardCounts = new Map(HOME_STREAK_BADGES.map((badge) => [badge.id, 0]));
+
+  for (const row of chronologicalRows) {
+    if (row.category === "ate_home") {
+      homeDays += 1;
+      currentRun += 1;
+      longestRun = Math.max(longestRun, currentRun);
+
+      for (const badge of HOME_STREAK_BADGES) {
+        if (currentRun >= badge.streak && !earnedDates.has(badge.id)) {
+          earnedDates.set(badge.id, row.date);
+        }
+
+        if (currentRun === badge.streak) {
+          rewardCounts.set(badge.id, rewardCounts.get(badge.id) + 1);
+        }
+      }
+    } else {
+      currentRun = 0;
+    }
+  }
+
+  const currentStreak = calculateEatHomeCurrentStreak(trackedRows, now);
+  const badges = HOME_STREAK_BADGES.map((badge) => ({
+    ...badge,
+    unlocked: earnedDates.has(badge.id),
+    earnedOn: earnedDates.get(badge.id) ?? null,
+    rewardCount: rewardCounts.get(badge.id) ?? 0,
+    progress: Math.min(currentStreak, badge.streak),
+    remaining: Math.max(badge.streak - currentStreak, 0)
+  }));
+
+  const unlockedCount = badges.filter((badge) => badge.unlocked).length;
+
+  return {
+    currentStreak,
+    longestStreak: longestRun,
+    totalHomeDays: homeDays,
+    unlockedCount,
+    totalBadges: badges.length,
+    nextBadge: badges.find((badge) => !badge.unlocked) ?? null,
+    badges
+  };
+};
+
 export const isValidEntryPayload = ({ date, category }) => {
   return (
     Boolean(date) &&
@@ -91,6 +180,7 @@ export const buildDashboardResponse = (repository, days, now = new Date()) => {
     timeline,
     recentEntries: repository.getRecentEntries(),
     streak: calculateStreak(repository.getTrackedDatesDesc(), now),
-    totalTracked: repository.getTotalTracked()
+    totalTracked: repository.getTotalTracked(),
+    rewards: buildBadgeProgress(repository.getTrackedDatesDesc(), now)
   };
 };
