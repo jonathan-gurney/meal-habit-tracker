@@ -1,3 +1,5 @@
+export { default as BadgeDetailsPage } from "./BadgeDetailsPage";
+export { default as BadgeSummary } from "./BadgeSummary";
 export { default as DailyLogForm } from "./DailyLogForm";
 export { default as DailyPatternChart } from "./DailyPatternChart";
 export { default as HabitSplitChart } from "./HabitSplitChart";

@@ -68,6 +68,7 @@ describe("Meal Habit Tracker API", () => {
     expect(dashboard.body.recentEntries).toEqual([
       { date: "2026-03-25", category: "takeaway" }
     ]);
+    expect(dashboard.body.rewards.currentStreak).toBe(0);
   });
 
   it("builds dashboard totals, recent entries, and a complete timeframe timeline", async () => {
@@ -139,6 +140,9 @@ describe("Meal Habit Tracker API", () => {
     const response = await request(app).get("/api/dashboard?days=30").expect(200);
 
     expect(response.body.streak).toBe(3);
+    expect(response.body.rewards.currentStreak).toBe(3);
+    expect(response.body.rewards.unlockedCount).toBe(1);
+    expect(response.body.rewards.badges[0].earnedOn).toBe("2026-03-25");
   });
 
   it("calculates a streak when the latest entry is yesterday", async () => {
@@ -154,6 +158,7 @@ describe("Meal Habit Tracker API", () => {
     const response = await request(app).get("/api/dashboard?days=30").expect(200);
 
     expect(response.body.streak).toBe(3);
+    expect(response.body.rewards.currentStreak).toBe(0);
   });
 
   it("returns a zero streak when the chain is broken before yesterday", async () => {

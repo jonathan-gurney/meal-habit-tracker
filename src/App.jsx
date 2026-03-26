@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
 import { fetchDashboardData, saveMealEntry } from "./api/dashboardApi";
 import {
+  BadgeDetailsPage,
+  BadgeSummary,
   DailyLogForm,
   DailyPatternChart,
   HabitSplitChart,
@@ -17,6 +19,9 @@ function App() {
   const [selectedMeal, setSelectedMeal] = useState("ate_home");
   const [selectedDate, setSelectedDate] = useState(getTodayIso());
   const [timeframe, setTimeframe] = useState("30");
+  const [activePage, setActivePage] = useState(
+    window.location.hash === "#badges" ? "badges" : "dashboard"
+  );
   const [dashboard, setDashboard] = useState(null);
   const [submitting, setSubmitting] = useState(false);
   const [status, setStatus] = useState("");
@@ -31,6 +36,15 @@ function App() {
       setStatus("Dashboard data could not be loaded.");
     });
   }, [timeframe]);
+
+  useEffect(() => {
+    const syncPage = () => {
+      setActivePage(window.location.hash === "#badges" ? "badges" : "dashboard");
+    };
+
+    window.addEventListener("hashchange", syncPage);
+    return () => window.removeEventListener("hashchange", syncPage);
+  }, []);
 
   const saveEntry = async (event) => {
     event.preventDefault();
@@ -58,6 +72,18 @@ function App() {
       count: dashboard.summary[option.value] ?? 0
     }));
   }, [dashboard]);
+
+  const openBadgePage = () => {
+    window.location.hash = "badges";
+  };
+
+  const openDashboardPage = () => {
+    window.location.hash = "";
+  };
+
+  if (activePage === "badges") {
+    return <BadgeDetailsPage rewards={dashboard?.rewards} onBack={openDashboardPage} />;
+  }
 
   return (
     <main className="shell">
@@ -101,6 +127,8 @@ function App() {
           </section>
 
           <SummaryCards cards={summaryCards} />
+
+          <BadgeSummary rewards={dashboard?.rewards} onOpen={openBadgePage} />
 
           <section className="chartGrid">
             <DailyPatternChart

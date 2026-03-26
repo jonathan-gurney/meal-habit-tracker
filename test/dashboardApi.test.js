@@ -11,7 +11,7 @@ describe("dashboardApi", () => {
   });
 
   it("fetches dashboard data", async () => {
-    const payload = { summary: {}, timeline: [] };
+    const payload = { summary: {}, timeline: [], rewards: { badges: [] } };
     global.fetch.mockResolvedValueOnce({
       ok: true,
       json: async () => payload
