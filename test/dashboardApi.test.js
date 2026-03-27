@@ -34,13 +34,17 @@ describe("dashboardApi", () => {
     });
 
     await expect(
-      saveMealEntry({ date: "2026-03-25", category: "ate_home" })
+      saveMealEntry({ date: "2026-03-25", category: "ate_home", amountPence: 1299 })
     ).resolves.toEqual({ success: true });
 
     expect(global.fetch).toHaveBeenCalledWith("/api/entries", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ date: "2026-03-25", category: "ate_home" })
+      body: JSON.stringify({
+        date: "2026-03-25",
+        category: "ate_home",
+        amountPence: 1299
+      })
     });
   });
 
@@ -48,7 +52,7 @@ describe("dashboardApi", () => {
     global.fetch.mockResolvedValueOnce({ ok: false });
 
     await expect(
-      saveMealEntry({ date: "2026-03-25", category: "ate_home" })
+      saveMealEntry({ date: "2026-03-25", category: "ate_home", amountPence: null })
     ).rejects.toThrow("Save failed");
   });
 });

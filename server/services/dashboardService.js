@@ -7,9 +7,9 @@ import { HOME_STREAK_BADGES } from "../../shared/badges.js";
 import { daysBetween, getDateRange, toIsoDate } from "../utils/date.js";
 
 const emptySummary = () => ({
-  takeaway: 0,
-  ate_out: 0,
-  ate_home: 0
+  takeaway: { count: 0, averageAmountPence: null, totalAmountPence: 0, amountEntryCount: 0 },
+  ate_out: { count: 0, averageAmountPence: null, totalAmountPence: 0, amountEntryCount: 0 },
+  ate_home: { count: 0, averageAmountPence: null, totalAmountPence: 0, amountEntryCount: 0 }
 });
 
 const buildTimeline = ({ start, end, entriesByDate }) => {
@@ -20,10 +20,16 @@ const buildTimeline = ({ start, end, entriesByDate }) => {
 
   while (cursor <= endDate) {
     const current = toIsoDate(cursor);
-    const category = entriesByDate.get(current) ?? null;
+    const entry = entriesByDate.get(current) ?? null;
+    const category = entry?.category ?? null;
 
     if (category) {
-      summary[category] += 1;
+      summary[category].count += 1;
+
+      if (Number.isInteger(entry.amountPence)) {
+        summary[category].totalAmountPence += entry.amountPence;
+        summary[category].amountEntryCount += 1;
+      }
     }
 
     timeline.push({
@@ -33,6 +39,14 @@ const buildTimeline = ({ start, end, entriesByDate }) => {
     });
 
     cursor.setDate(cursor.getDate() + 1);
+  }
+
+  for (const categorySummary of Object.values(summary)) {
+    if (categorySummary.amountEntryCount > 0) {
+      categorySummary.averageAmountPence = Math.round(
+        categorySummary.totalAmountPence / categorySummary.amountEntryCount
+      );
+    }
   }
 
   return { summary, timeline };
@@ -156,11 +170,17 @@ const buildBadgeProgress = (trackedRows, now) => {
   };
 };
 
-export const isValidEntryPayload = ({ date, category }) => {
+export const isValidEntryPayload = ({ date, category, amountPence }) => {
+  const hasValidAmount =
+    amountPence === undefined ||
+    amountPence === null ||
+    (Number.isInteger(amountPence) && amountPence >= 0);
+
   return (
     Boolean(date) &&
     /^\d{4}-\d{2}-\d{2}$/.test(date) &&
-    VALID_CATEGORIES.includes(category)
+    VALID_CATEGORIES.includes(category) &&
+    hasValidAmount
   );
 };
 
@@ -172,13 +192,22 @@ export const buildDashboardResponse = (repository, days, now = new Date()) => {
   const { start, end } = getDateRange(safeDays, now);
 
   const entries = repository.getEntriesInRange(start, end);
-  const entriesByDate = new Map(entries.map((row) => [row.date, row.category]));
+  const entriesByDate = new Map(
+    entries.map((row) => [
+      row.date,
+      { category: row.category, amountPence: row.amount_pence ?? null }
+    ])
+  );
   const { summary, timeline } = buildTimeline({ start, end, entriesByDate });
 
   return {
     summary,
     timeline,
-    recentEntries: repository.getRecentEntries(),
+    recentEntries: repository.getRecentEntries().map((row) => ({
+      date: row.date,
+      category: row.category,
+      amountPence: row.amount_pence ?? null
+    })),
     streak: calculateStreak(repository.getTrackedDatesDesc(), now),
     totalTracked: repository.getTotalTracked(),
     rewards: buildBadgeProgress(repository.getTrackedDatesDesc(), now)

@@ -23,7 +23,7 @@ export const createApp = ({
       return res.status(400).json({ error: "Invalid payload" });
     }
 
-    repository.upsertEntry(payload.date, payload.category);
+    repository.upsertEntry(payload.date, payload.category, payload.amountPence ?? null);
     return res.status(201).json({ success: true });
   });
 

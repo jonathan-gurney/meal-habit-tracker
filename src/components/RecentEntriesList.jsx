@@ -1,6 +1,12 @@
 import { formatDay } from "../utils/date";
 import PanelHeader from "./PanelHeader";
 
+const formatCurrency = (amountPence) =>
+  new Intl.NumberFormat("en-GB", {
+    style: "currency",
+    currency: "GBP"
+  }).format(amountPence / 100);
+
 function RecentEntriesList({ entries, optionLookup }) {
   return (
     <section className="panel">
@@ -11,7 +17,12 @@ function RecentEntriesList({ entries, optionLookup }) {
       <div className="entryList">
         {entries.map((entry) => (
           <div className="entryRow" key={entry.date}>
-            <span>{formatDay(entry.date)}</span>
+            <div>
+              <span>{formatDay(entry.date)}</span>
+              {entry.amountPence !== null ? (
+                <span className="entryRow__meta">{formatCurrency(entry.amountPence)}</span>
+              ) : null}
+            </div>
             <strong style={{ color: optionLookup[entry.category]?.accent ?? "#fff" }}>
               {optionLookup[entry.category]?.label ?? entry.category}
             </strong>

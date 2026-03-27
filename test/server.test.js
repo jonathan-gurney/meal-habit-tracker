@@ -38,7 +38,7 @@ describe("Meal Habit Tracker API", () => {
 
     const response = await request(app)
       .post("/api/entries")
-      .send({ date: "25-03-2026", category: "snack" });
+      .send({ date: "25-03-2026", category: "snack", amountPence: -100 });
 
     expect(response.status).toBe(400);
     expect(response.body).toEqual({ error: "Invalid payload" });
@@ -49,24 +49,39 @@ describe("Meal Habit Tracker API", () => {
 
     await request(app)
       .post("/api/entries")
-      .send({ date: "2026-03-25", category: "ate_home" })
+      .send({ date: "2026-03-25", category: "ate_home", amountPence: 875 })
       .expect(201);
 
     await request(app)
       .post("/api/entries")
-      .send({ date: "2026-03-25", category: "takeaway" })
+      .send({ date: "2026-03-25", category: "takeaway", amountPence: 1325 })
       .expect(201);
 
     const dashboard = await request(app).get("/api/dashboard?days=30").expect(200);
 
     expect(dashboard.body.summary).toEqual({
-      takeaway: 1,
-      ate_out: 0,
-      ate_home: 0
+      takeaway: {
+        count: 1,
+        averageAmountPence: 1325,
+        totalAmountPence: 1325,
+        amountEntryCount: 1
+      },
+      ate_out: {
+        count: 0,
+        averageAmountPence: null,
+        totalAmountPence: 0,
+        amountEntryCount: 0
+      },
+      ate_home: {
+        count: 0,
+        averageAmountPence: null,
+        totalAmountPence: 0,
+        amountEntryCount: 0
+      }
     });
     expect(dashboard.body.totalTracked).toBe(1);
     expect(dashboard.body.recentEntries).toEqual([
-      { date: "2026-03-25", category: "takeaway" }
+      { date: "2026-03-25", category: "takeaway", amountPence: 1325 }
     ]);
     expect(dashboard.body.rewards.currentStreak).toBe(0);
   });
@@ -75,10 +90,10 @@ describe("Meal Habit Tracker API", () => {
     const app = bootApp();
 
     const entries = [
-      { date: "2026-03-25", category: "ate_home" },
+      { date: "2026-03-25", category: "ate_home", amountPence: 900 },
       { date: "2026-03-24", category: "ate_out" },
-      { date: "2026-03-22", category: "takeaway" },
-      { date: "2026-03-20", category: "ate_home" }
+      { date: "2026-03-22", category: "takeaway", amountPence: 1500 },
+      { date: "2026-03-20", category: "ate_home", amountPence: 700 }
     ];
 
     for (const entry of entries) {
@@ -88,9 +103,24 @@ describe("Meal Habit Tracker API", () => {
     const response = await request(app).get("/api/dashboard?days=7").expect(200);
 
     expect(response.body.summary).toEqual({
-      takeaway: 1,
-      ate_out: 1,
-      ate_home: 2
+      takeaway: {
+        count: 1,
+        averageAmountPence: 1500,
+        totalAmountPence: 1500,
+        amountEntryCount: 1
+      },
+      ate_out: {
+        count: 1,
+        averageAmountPence: null,
+        totalAmountPence: 0,
+        amountEntryCount: 0
+      },
+      ate_home: {
+        count: 2,
+        averageAmountPence: 800,
+        totalAmountPence: 1600,
+        amountEntryCount: 2
+      }
     });
     expect(response.body.totalTracked).toBe(4);
     expect(response.body.timeline).toHaveLength(7);
@@ -105,10 +135,10 @@ describe("Meal Habit Tracker API", () => {
       score: 1
     });
     expect(response.body.recentEntries).toEqual([
-      { date: "2026-03-25", category: "ate_home" },
-      { date: "2026-03-24", category: "ate_out" },
-      { date: "2026-03-22", category: "takeaway" },
-      { date: "2026-03-20", category: "ate_home" }
+      { date: "2026-03-25", category: "ate_home", amountPence: 900 },
+      { date: "2026-03-24", category: "ate_out", amountPence: null },
+      { date: "2026-03-22", category: "takeaway", amountPence: 1500 },
+      { date: "2026-03-20", category: "ate_home", amountPence: 700 }
     ]);
   });
 
@@ -125,6 +155,32 @@ describe("Meal Habit Tracker API", () => {
     expect(response.body.timeline).toHaveLength(30);
     expect(response.body.timeline[0].date).toBe("2026-02-24");
     expect(response.body.timeline.at(-1).date).toBe("2026-03-25");
+  });
+
+  it("keeps spend optional while calculating category averages for the selected range", async () => {
+    const app = bootApp();
+
+    await request(app)
+      .post("/api/entries")
+      .send({ date: "2026-03-25", category: "takeaway", amountPence: 1050 })
+      .expect(201);
+    await request(app)
+      .post("/api/entries")
+      .send({ date: "2026-03-24", category: "takeaway" })
+      .expect(201);
+    await request(app)
+      .post("/api/entries")
+      .send({ date: "2026-03-23", category: "takeaway", amountPence: 1950 })
+      .expect(201);
+
+    const response = await request(app).get("/api/dashboard?days=7").expect(200);
+
+    expect(response.body.summary.takeaway).toMatchObject({
+      count: 3,
+      totalAmountPence: 3000,
+      amountEntryCount: 2,
+      averageAmountPence: 1500
+    });
   });
 
   it("calculates a streak when entries include today", async () => {

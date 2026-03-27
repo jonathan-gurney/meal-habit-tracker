@@ -8,11 +8,11 @@ export const fetchDashboardData = async (days) => {
   return response.json();
 };
 
-export const saveMealEntry = async ({ date, category }) => {
+export const saveMealEntry = async ({ date, category, amountPence }) => {
   const response = await fetch("/api/entries", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ date, category })
+    body: JSON.stringify({ date, category, amountPence })
   });
 
   if (!response.ok) {

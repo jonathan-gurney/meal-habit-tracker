@@ -8,6 +8,8 @@ function DailyLogForm({
   onDateChange,
   selectedMeal,
   onMealChange,
+  amountSpent,
+  onAmountSpentChange,
   onSubmit,
   submitting,
   status
@@ -43,6 +45,17 @@ function DailyLogForm({
           ))}
         </div>
       </div>
+
+      <label className="field">
+        <span>Amount Spent (GBP, optional)</span>
+        <input
+          type="text"
+          inputMode="decimal"
+          placeholder="0.00"
+          value={amountSpent}
+          onChange={(event) => onAmountSpentChange(event.target.value)}
+        />
+      </label>
 
       <button className="primaryButton" type="submit" disabled={submitting}>
         {submitting ? "Saving..." : "Save Daily Habit"}

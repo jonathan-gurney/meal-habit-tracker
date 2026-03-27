@@ -26,17 +26,32 @@ vi.mock("recharts", () => {
 
 const buildDashboard = (overrides = {}) => ({
   summary: {
-    takeaway: 2,
-    ate_out: 1,
-    ate_home: 4
+    takeaway: {
+      count: 2,
+      averageAmountPence: 1475,
+      totalAmountPence: 2950,
+      amountEntryCount: 2
+    },
+    ate_out: {
+      count: 1,
+      averageAmountPence: null,
+      totalAmountPence: 0,
+      amountEntryCount: 0
+    },
+    ate_home: {
+      count: 4,
+      averageAmountPence: 825,
+      totalAmountPence: 3300,
+      amountEntryCount: 4
+    }
   },
   timeline: [
     { date: "2026-03-24", category: "ate_out", score: 2 },
     { date: "2026-03-25", category: "ate_home", score: 1 }
   ],
   recentEntries: [
-    { date: "2026-03-25", category: "ate_home" },
-    { date: "2026-03-24", category: "ate_out" }
+    { date: "2026-03-25", category: "ate_home", amountPence: 900 },
+    { date: "2026-03-24", category: "ate_out", amountPence: null }
   ],
   streak: 5,
   totalTracked: 7,
@@ -120,6 +135,7 @@ describe("App", () => {
     expect(screen.getByRole("button", { name: "Ate at home" })).toBeInTheDocument();
     expect(screen.getByText("5 days")).toBeInTheDocument();
     expect(screen.getByText("25 Mar")).toBeInTheDocument();
+    expect(screen.getByText("Avg spend £14.75")).toBeInTheDocument();
     expect(screen.getByText("Home streak badges")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "View all badges" })).toBeInTheDocument();
   });
@@ -140,10 +156,29 @@ describe("App", () => {
         ok: true,
         json: async () =>
           buildDashboard({
-            summary: { takeaway: 3, ate_out: 1, ate_home: 4 },
+            summary: {
+              takeaway: {
+                count: 3,
+                averageAmountPence: 1234,
+                totalAmountPence: 3702,
+                amountEntryCount: 3
+              },
+              ate_out: {
+                count: 1,
+                averageAmountPence: null,
+                totalAmountPence: 0,
+                amountEntryCount: 0
+              },
+              ate_home: {
+                count: 4,
+                averageAmountPence: 825,
+                totalAmountPence: 3300,
+                amountEntryCount: 4
+              }
+            },
             totalTracked: 8,
             streak: 6,
-            recentEntries: [{ date: "2026-03-25", category: "takeaway" }]
+            recentEntries: [{ date: "2026-03-25", category: "takeaway", amountPence: 1234 }]
           })
       });
 
@@ -152,6 +187,9 @@ describe("App", () => {
     await screen.findByText("Tracked Days");
     fireEvent.change(screen.getByLabelText("Date"), {
       target: { value: "2026-03-25" }
+    });
+    fireEvent.change(screen.getByLabelText("Amount Spent (GBP, optional)"), {
+      target: { value: "12.34" }
     });
     await user.click(screen.getByRole("button", { name: "Takeaway" }));
     await user.click(screen.getByRole("button", { name: "Save Daily Habit" }));
@@ -162,12 +200,14 @@ describe("App", () => {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           date: "2026-03-25",
-          category: "takeaway"
+          category: "takeaway",
+          amountPence: 1234
         })
       });
     });
 
     expect(await screen.findByText("Meal habit logged for the day.")).toBeInTheDocument();
+    expect(screen.getByText("Avg spend £12.34")).toBeInTheDocument();
     const trackedDaysCard = screen.getByText("Tracked Days").closest(".stat");
     const streakCard = screen.getByText("Current Streak").closest(".stat");
 
@@ -250,5 +290,27 @@ describe("App", () => {
     expect(
       await screen.findByText("Something went wrong while saving your meal habit.")
     ).toBeInTheDocument();
+  });
+
+  it("shows a validation message when the amount has too many decimal places", async () => {
+    const user = userEvent.setup();
+
+    global.fetch.mockResolvedValueOnce({
+      ok: true,
+      json: async () => buildDashboard()
+    });
+
+    render(<App />);
+
+    await screen.findByText("Tracked Days");
+    fireEvent.change(screen.getByLabelText("Amount Spent (GBP, optional)"), {
+      target: { value: "12.345" }
+    });
+    await user.click(screen.getByRole("button", { name: "Save Daily Habit" }));
+
+    expect(
+      await screen.findByText("Enter the amount in pounds and pence, for example 12.50.")
+    ).toBeInTheDocument();
+    expect(global.fetch).toHaveBeenCalledTimes(1);
   });
 });
