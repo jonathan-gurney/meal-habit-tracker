@@ -18,6 +18,7 @@ import { getTodayIso } from "./utils/date";
 function App() {
   const [selectedMeal, setSelectedMeal] = useState("ate_home");
   const [selectedDate, setSelectedDate] = useState(getTodayIso());
+  const [amountSpent, setAmountSpent] = useState("");
   const [timeframe, setTimeframe] = useState("30");
   const [activePage, setActivePage] = useState(
     window.location.hash === "#badges" ? "badges" : "dashboard"
@@ -46,14 +47,38 @@ function App() {
     return () => window.removeEventListener("hashchange", syncPage);
   }, []);
 
+  const parseAmountSpent = (value) => {
+    if (value.trim() === "") {
+      return null;
+    }
+
+    if (!/^\d+(\.\d{1,2})?$/.test(value)) {
+      return undefined;
+    }
+
+    return Math.round(Number(value) * 100);
+  };
+
   const saveEntry = async (event) => {
     event.preventDefault();
-    setSubmitting(true);
     setStatus("");
+    const parsedAmount = parseAmountSpent(amountSpent);
+
+    if (parsedAmount === undefined) {
+      setStatus("Enter the amount in pounds and pence, for example 12.50.");
+      return;
+    }
+
+    setSubmitting(true);
 
     try {
-      await saveMealEntry({ date: selectedDate, category: selectedMeal });
+      await saveMealEntry({
+        date: selectedDate,
+        category: selectedMeal,
+        amountPence: parsedAmount
+      });
       await loadDashboard(timeframe);
+      setAmountSpent("");
       setStatus("Meal habit logged for the day.");
     } catch (_error) {
       setStatus("Something went wrong while saving your meal habit.");
@@ -69,7 +94,8 @@ function App() {
 
     return MEAL_OPTIONS.map((option) => ({
       ...option,
-      count: dashboard.summary[option.value] ?? 0
+      count: dashboard.summary[option.value]?.count ?? 0,
+      averageAmountPence: dashboard.summary[option.value]?.averageAmountPence ?? null
     }));
   }, [dashboard]);
 
@@ -108,6 +134,8 @@ function App() {
           onDateChange={setSelectedDate}
           selectedMeal={selectedMeal}
           onMealChange={setSelectedMeal}
+          amountSpent={amountSpent}
+          onAmountSpentChange={setAmountSpent}
           onSubmit={saveEntry}
           submitting={submitting}
           status={status}

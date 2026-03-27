@@ -118,7 +118,8 @@ input {
   gap: 12px;
 }
 
-input[type="date"] {
+input[type="date"],
+input[type="number"] {
   border: 1px solid var(--panel-border);
   background: rgba(255, 255, 255, 0.04);
   color: #fff;
@@ -230,6 +231,14 @@ input[type="date"] {
   display: block;
   font-size: 2.3rem;
   margin-top: 14px;
+}
+
+.metricCard__subtext,
+.entryRow__meta {
+  display: block;
+  margin-top: 8px;
+  color: var(--text-soft);
+  font-size: 0.95rem;
 }
 
 .badgePanel {
