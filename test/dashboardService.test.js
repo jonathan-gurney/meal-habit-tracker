@@ -78,7 +78,7 @@ describe("dashboardService", () => {
       longestStreak: 2,
       totalHomeDays: 2,
       unlockedCount: 0,
-      totalBadges: 6
+      totalBadges: 8
     });
   });
 
@@ -176,5 +176,139 @@ describe("dashboardService", () => {
       amountEntryCount: 2,
       averageAmountPence: 1500
     });
+  });
+
+  it("awards the balanced month badge for 30 continuous days with <= 5 eat-out days", () => {
+    const trackedDates = Array.from({ length: 30 }, (_, index) => {
+      const date = new Date("2026-03-25T00:00:00.000Z");
+      date.setDate(date.getDate() - index);
+      return {
+        date: date.toISOString().slice(0, 10),
+        category: index < 5 ? "ate_out" : "ate_home"
+      };
+    });
+    const repository = {
+      getEntriesInRange: () => [],
+      getRecentEntries: () => [],
+      getTrackedDatesDesc: () => trackedDates,
+      getTotalTracked: () => 30
+    };
+
+    const result = buildDashboardResponse(repository, 30, new Date("2026-03-25T12:00:00.000Z"));
+
+    const balancedMonthBadge = result.rewards.badges.find((badge) => badge.id === "balanced_month_30");
+    expect(balancedMonthBadge).toMatchObject({
+      unlocked: true,
+      earnedOn: "2026-03-25",
+      rewardCount: 1,
+      progress: 30
+    });
+  });
+
+  it("awards the takeaway-light badge for 30 continuous days with <= 5 takeaways", () => {
+    const trackedDates = Array.from({ length: 30 }, (_, index) => {
+      const date = new Date("2026-03-25T00:00:00.000Z");
+      date.setDate(date.getDate() - index);
+      return {
+        date: date.toISOString().slice(0, 10),
+        category: index < 5 ? "takeaway" : "ate_home"
+      };
+    });
+    const repository = {
+      getEntriesInRange: () => [],
+      getRecentEntries: () => [],
+      getTrackedDatesDesc: () => trackedDates,
+      getTotalTracked: () => 30
+    };
+
+    const result = buildDashboardResponse(repository, 30, new Date("2026-03-25T12:00:00.000Z"));
+
+    const takeawayLightBadge = result.rewards.badges.find((badge) => badge.id === "takeaway_light_30");
+    expect(takeawayLightBadge).toMatchObject({
+      unlocked: true,
+      earnedOn: "2026-03-25",
+      rewardCount: 1,
+      progress: 30
+    });
+  });
+
+  it("shows continuous badge progress based on the latest 30-day window", () => {
+    const trackedDates = Array.from({ length: 30 }, (_, index) => {
+      const date = new Date("2026-03-25T00:00:00.000Z");
+      date.setDate(date.getDate() - index);
+      return {
+        date: date.toISOString().slice(0, 10),
+        category: index < 7 ? "takeaway" : "ate_home"
+      };
+    });
+    const repository = {
+      getEntriesInRange: () => [],
+      getRecentEntries: () => [],
+      getTrackedDatesDesc: () => trackedDates,
+      getTotalTracked: () => 30
+    };
+
+    const result = buildDashboardResponse(repository, 30, new Date("2026-03-25T12:00:00.000Z"));
+
+    const balancedMonthBadge = result.rewards.badges.find((badge) => badge.id === "balanced_month_30");
+    const takeawayLightBadge = result.rewards.badges.find((badge) => badge.id === "takeaway_light_30");
+
+    expect(balancedMonthBadge).toMatchObject({
+      progress: 0,
+      remaining: 30
+    });
+    expect(takeawayLightBadge).toMatchObject({
+      progress: 28,
+      remaining: 2
+    });
+  });
+
+  it("resets balanced month progress when a takeaway appears in the current run", () => {
+    const trackedDates = Array.from({ length: 13 }, (_, index) => {
+      const date = new Date("2026-03-25T00:00:00.000Z");
+      date.setDate(date.getDate() - index);
+      return {
+        date: date.toISOString().slice(0, 10),
+        category: index < 4 ? "takeaway" : "ate_home"
+      };
+    });
+    const repository = {
+      getEntriesInRange: () => [],
+      getRecentEntries: () => [],
+      getTrackedDatesDesc: () => trackedDates,
+      getTotalTracked: () => 13
+    };
+
+    const result = buildDashboardResponse(repository, 30, new Date("2026-03-25T12:00:00.000Z"));
+    const balancedMonthBadge = result.rewards.badges.find((badge) => badge.id === "balanced_month_30");
+
+    expect(balancedMonthBadge).toMatchObject({
+      progress: 0,
+      remaining: 30
+    });
+  });
+  it("counts continuous-window badge rewards once per qualifying run", () => {
+    const trackedDates = Array.from({ length: 35 }, (_, index) => {
+      const date = new Date("2026-03-25T00:00:00.000Z");
+      date.setDate(date.getDate() - index);
+      return {
+        date: date.toISOString().slice(0, 10),
+        category: "ate_home"
+      };
+    });
+    const repository = {
+      getEntriesInRange: () => [],
+      getRecentEntries: () => [],
+      getTrackedDatesDesc: () => trackedDates,
+      getTotalTracked: () => 35
+    };
+
+    const result = buildDashboardResponse(repository, 30, new Date("2026-03-25T12:00:00.000Z"));
+
+    const balancedMonthBadge = result.rewards.badges.find((badge) => badge.id === "balanced_month_30");
+    const takeawayLightBadge = result.rewards.badges.find((badge) => badge.id === "takeaway_light_30");
+
+    expect(balancedMonthBadge.rewardCount).toBe(1);
+    expect(takeawayLightBadge.rewardCount).toBe(1);
   });
 });
