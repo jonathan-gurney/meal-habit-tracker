@@ -258,8 +258,8 @@ describe("dashboardService", () => {
       remaining: 30
     });
     expect(takeawayLightBadge).toMatchObject({
-      progress: 28,
-      remaining: 2
+      progress: 5,
+      remaining: 25
     });
   });
 
@@ -287,6 +287,32 @@ describe("dashboardService", () => {
       remaining: 30
     });
   });
+
+  it("resets takeaway light progress after the sixth takeaway in the current run", () => {
+    const trackedDates = Array.from({ length: 16 }, (_, index) => {
+      const date = new Date("2026-03-25T00:00:00.000Z");
+      date.setDate(date.getDate() - index);
+      return {
+        date: date.toISOString().slice(0, 10),
+        category: index < 6 ? "takeaway" : "ate_home"
+      };
+    });
+    const repository = {
+      getEntriesInRange: () => [],
+      getRecentEntries: () => [],
+      getTrackedDatesDesc: () => trackedDates,
+      getTotalTracked: () => 16
+    };
+
+    const result = buildDashboardResponse(repository, 30, new Date("2026-03-25T12:00:00.000Z"));
+    const takeawayLightBadge = result.rewards.badges.find((badge) => badge.id === "takeaway_light_30");
+
+    expect(takeawayLightBadge).toMatchObject({
+      progress: 5,
+      remaining: 25
+    });
+  });
+
   it("counts continuous-window badge rewards once per qualifying run", () => {
     const trackedDates = Array.from({ length: 35 }, (_, index) => {
       const date = new Date("2026-03-25T00:00:00.000Z");

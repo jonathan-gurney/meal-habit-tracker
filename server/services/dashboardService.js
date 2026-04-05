@@ -158,11 +158,25 @@ const calculateContinuousWindowProgress = (badgeId, windowRows) => {
   }
 
   if (badgeId === "takeaway_light_30") {
-    if (windowRows.length < 30) {
-      return windowRows.length;
+    let progress = 0;
+    let takeawayDays = 0;
+    const reversedRows = [...windowRows].reverse();
+
+    for (const row of reversedRows) {
+      if (row.category === "takeaway") {
+        takeawayDays += 1;
+        if (takeawayDays > 5) {
+          break;
+        }
+      }
+
+      progress += 1;
+      if (progress === 30) {
+        break;
+      }
     }
-    const takeawayDays = windowRows.filter((row) => row.category === "takeaway").length;
-    return Math.max(30 - Math.max(takeawayDays - 5, 0), 0);
+
+    return progress;
   }
 
   return 0;
