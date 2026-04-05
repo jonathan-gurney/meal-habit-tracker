@@ -10,8 +10,8 @@ function BadgeDetailsPage({ rewards, onBack }) {
         <span className="eyebrow">Rewards</span>
         <h1>Home streak badges</h1>
         <p>
-          Every badge celebrates consecutive days of eating at home. Your current streak
-          drives the live progress, while unlocked badges stay with you once earned.
+          Some badges track pure at-home streaks, while others track a qualifying logged run
+          with limits on takeaway or eat-out days. Unlocked badges stay with you once earned.
         </p>
       </section>
 
