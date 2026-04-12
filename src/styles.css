@@ -57,6 +57,14 @@ input {
   color: var(--text-soft);
 }
 
+.status--error {
+  color: #ff7a59;
+}
+
+.status--success {
+  color: #06d6a0;
+}
+
 .eyebrow {
   letter-spacing: 0.2em;
   text-transform: uppercase;
