@@ -1,8 +1,4 @@
-const formatCurrency = (amountPence) =>
-  new Intl.NumberFormat("en-GB", {
-    style: "currency",
-    currency: "GBP"
-  }).format(amountPence / 100);
+import { formatCurrency } from "../utils/format";
 
 function SummaryCards({ cards }) {
   return (

@@ -1,5 +1,6 @@
-import { useEffect, useMemo, useState } from "react";
-import { fetchDashboardData, saveMealEntry } from "./api/dashboardApi";
+import { useDashboard } from "./hooks/useDashboard";
+import { useMealForm } from "./hooks/useMealForm";
+import { usePageNav } from "./hooks/usePageNav";
 import {
   BadgeDetailsPage,
   BadgeSummary,
@@ -12,100 +13,25 @@ import {
   SummaryCards,
   TimeframeSelector
 } from "./components";
-import { MEAL_OPTIONS, TIMEFRAMES, optionLookup } from "./constants";
-import { getTodayIso } from "./utils/date";
+import { TIMEFRAMES, optionLookup } from "./constants";
 
 function App() {
-  const [selectedMeal, setSelectedMeal] = useState("ate_home");
-  const [selectedDate, setSelectedDate] = useState(getTodayIso());
-  const [amountSpent, setAmountSpent] = useState("");
-  const [timeframe, setTimeframe] = useState("30");
-  const [activePage, setActivePage] = useState(
-    window.location.hash === "#badges" ? "badges" : "dashboard"
-  );
-  const [dashboard, setDashboard] = useState(null);
-  const [submitting, setSubmitting] = useState(false);
-  const [status, setStatus] = useState("");
+  const { timeframe, setTimeframe, dashboard, loading, error, summaryCards, loadDashboard } =
+    useDashboard();
 
-  const loadDashboard = async (days) => {
-    const data = await fetchDashboardData(days);
-    setDashboard(data);
-  };
+  const { activePage, openBadgePage, openDashboardPage } = usePageNav();
 
-  useEffect(() => {
-    loadDashboard(timeframe).catch(() => {
-      setStatus("Dashboard data could not be loaded.");
-    });
-  }, [timeframe]);
-
-  useEffect(() => {
-    const syncPage = () => {
-      setActivePage(window.location.hash === "#badges" ? "badges" : "dashboard");
-    };
-
-    window.addEventListener("hashchange", syncPage);
-    return () => window.removeEventListener("hashchange", syncPage);
-  }, []);
-
-  const parseAmountSpent = (value) => {
-    if (value.trim() === "") {
-      return null;
-    }
-
-    if (!/^\d+(\.\d{1,2})?$/.test(value)) {
-      return undefined;
-    }
-
-    return Math.round(Number(value) * 100);
-  };
-
-  const saveEntry = async (event) => {
-    event.preventDefault();
-    setStatus("");
-    const parsedAmount = parseAmountSpent(amountSpent);
-
-    if (parsedAmount === undefined) {
-      setStatus("Enter the amount in pounds and pence, for example 12.50.");
-      return;
-    }
-
-    setSubmitting(true);
-
-    try {
-      await saveMealEntry({
-        date: selectedDate,
-        category: selectedMeal,
-        amountPence: parsedAmount
-      });
-      await loadDashboard(timeframe);
-      setAmountSpent("");
-      setStatus("Meal habit logged for the day.");
-    } catch (_error) {
-      setStatus("Something went wrong while saving your meal habit.");
-    } finally {
-      setSubmitting(false);
-    }
-  };
-
-  const summaryCards = useMemo(() => {
-    if (!dashboard) {
-      return [];
-    }
-
-    return MEAL_OPTIONS.map((option) => ({
-      ...option,
-      count: dashboard.summary[option.value]?.count ?? 0,
-      averageAmountPence: dashboard.summary[option.value]?.averageAmountPence ?? null
-    }));
-  }, [dashboard]);
-
-  const openBadgePage = () => {
-    window.location.hash = "badges";
-  };
-
-  const openDashboardPage = () => {
-    window.location.hash = "";
-  };
+  const {
+    selectedMeal,
+    setSelectedMeal,
+    selectedDate,
+    setSelectedDate,
+    amountSpent,
+    setAmountSpent,
+    submitting,
+    status,
+    saveEntry
+  } = useMealForm(() => loadDashboard(timeframe));
 
   if (activePage === "badges") {
     return <BadgeDetailsPage rewards={dashboard?.rewards} onBack={openDashboardPage} />;
@@ -138,7 +64,8 @@ function App() {
           onAmountSpentChange={setAmountSpent}
           onSubmit={saveEntry}
           submitting={submitting}
-          status={status}
+          status={status.message}
+          statusType={status.type}
         />
 
         <div className="dashboard">
@@ -153,6 +80,9 @@ function App() {
               onChange={setTimeframe}
             />
           </section>
+
+          {error && <p className="status status--error">{error}</p>}
+          {loading && !dashboard && <p className="status">Loading dashboard...</p>}
 
           <SummaryCards cards={summaryCards} />
 

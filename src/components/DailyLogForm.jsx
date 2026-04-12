@@ -12,13 +12,14 @@ function DailyLogForm({
   onAmountSpentChange,
   onSubmit,
   submitting,
-  status
+  status,
+  statusType
 }) {
   return (
     <form className="panel panel--form" onSubmit={onSubmit}>
       <PanelHeader
         title="Daily Log"
-        description="One entry per day. Saving again updates that day’s habit."
+        description="One entry per day. Saving again updates that day's habit."
       />
 
       <label className="field">
@@ -61,7 +62,9 @@ function DailyLogForm({
         {submitting ? "Saving..." : "Save Daily Habit"}
       </button>
 
-      {status ? <p className="status">{status}</p> : null}
+      {status ? (
+        <p className={`status${statusType ? ` status--${statusType}` : ""}`}>{status}</p>
+      ) : null}
     </form>
   );
 }

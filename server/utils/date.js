@@ -1,4 +1,6 @@
-export const toIsoDate = (date) => date.toISOString().slice(0, 10);
+import { toIsoDate } from "../../shared/date.js";
+
+export { toIsoDate };
 
 export const getDateRange = (days, now = new Date()) => {
   const end = new Date(now);

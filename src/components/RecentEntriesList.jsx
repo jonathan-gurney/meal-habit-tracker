@@ -1,11 +1,6 @@
 import { formatDay } from "../utils/date";
+import { formatCurrency } from "../utils/format";
 import PanelHeader from "./PanelHeader";
-
-const formatCurrency = (amountPence) =>
-  new Intl.NumberFormat("en-GB", {
-    style: "currency",
-    currency: "GBP"
-  }).format(amountPence / 100);
 
 function RecentEntriesList({ entries, optionLookup }) {
   return (
