@@ -24,12 +24,13 @@ describe("dashboardApi", () => {
     });
   });
 
-  it("ignores aborted requests without throwing", async () => {
+  it("rejects with an AbortError when the request is aborted", async () => {
     const controller = new AbortController();
     const abortError = new DOMException("The user aborted a request.", "AbortError");
     global.fetch.mockRejectedValueOnce(abortError);
 
-    await expect(fetchDashboardData("30", controller.signal)).rejects.toThrow("AbortError");
+    const err = await fetchDashboardData("30", controller.signal).catch((e) => e);
+    expect(err.name).toBe("AbortError");
   });
 
   it("throws when dashboard fetch fails", async () => {

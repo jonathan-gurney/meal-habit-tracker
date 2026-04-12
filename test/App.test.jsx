@@ -128,7 +128,10 @@ describe("App", () => {
 
     render(<App />);
 
-    expect(global.fetch).toHaveBeenCalledWith("/api/dashboard?days=30");
+    expect(global.fetch).toHaveBeenCalledWith(
+      "/api/dashboard?days=30",
+      expect.objectContaining({ signal: expect.any(AbortSignal) })
+    );
 
     expect(await screen.findByText("Tracked Days")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Takeaway" })).toBeInTheDocument();
@@ -234,7 +237,10 @@ describe("App", () => {
     await user.click(screen.getByRole("button", { name: "Week" }));
 
     await waitFor(() => {
-      expect(global.fetch).toHaveBeenLastCalledWith("/api/dashboard?days=7");
+      expect(global.fetch).toHaveBeenLastCalledWith(
+        "/api/dashboard?days=7",
+        expect.objectContaining({ signal: expect.any(AbortSignal) })
+      );
     });
   });
 
