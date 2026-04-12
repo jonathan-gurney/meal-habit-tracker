@@ -17,8 +17,19 @@ describe("dashboardApi", () => {
       json: async () => payload
     });
 
-    await expect(fetchDashboardData("30")).resolves.toEqual(payload);
-    expect(global.fetch).toHaveBeenCalledWith("/api/dashboard?days=30");
+    const controller = new AbortController();
+    await expect(fetchDashboardData("30", controller.signal)).resolves.toEqual(payload);
+    expect(global.fetch).toHaveBeenCalledWith("/api/dashboard?days=30", {
+      signal: controller.signal
+    });
+  });
+
+  it("ignores aborted requests without throwing", async () => {
+    const controller = new AbortController();
+    const abortError = new DOMException("The user aborted a request.", "AbortError");
+    global.fetch.mockRejectedValueOnce(abortError);
+
+    await expect(fetchDashboardData("30", controller.signal)).rejects.toThrow("AbortError");
   });
 
   it("throws when dashboard fetch fails", async () => {

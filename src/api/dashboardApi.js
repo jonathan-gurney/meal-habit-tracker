@@ -1,5 +1,5 @@
-export const fetchDashboardData = async (days) => {
-  const response = await fetch(`/api/dashboard?days=${days}`);
+export const fetchDashboardData = async (days, signal) => {
+  const response = await fetch(`/api/dashboard?days=${days}`, { signal });
 
   if (!response.ok) {
     throw new Error("Unable to load dashboard");

@@ -33,9 +33,15 @@ function App() {
   };
 
   useEffect(() => {
-    loadDashboard(timeframe).catch(() => {
-      setStatus("Dashboard data could not be loaded.");
-    });
+    const controller = new AbortController();
+    fetchDashboardData(timeframe, controller.signal)
+      .then(setDashboard)
+      .catch((err) => {
+        if (err.name !== "AbortError") {
+          setStatus("Dashboard data could not be loaded.");
+        }
+      });
+    return () => controller.abort();
   }, [timeframe]);
 
   useEffect(() => {

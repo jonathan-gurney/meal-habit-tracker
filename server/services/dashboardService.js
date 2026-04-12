@@ -52,74 +52,31 @@ const buildTimeline = ({ start, end, entriesByDate }) => {
   return { summary, timeline };
 };
 
-const calculateStreak = (trackedRows, now) => {
-  if (trackedRows.length === 0) {
-    return 0;
-  }
-
-  const today = new Date(now);
-  today.setHours(0, 0, 0, 0);
-  let expected = new Date(today);
-
-  if (trackedRows[0].date !== toIsoDate(today)) {
-    const latest = new Date(`${trackedRows[0].date}T00:00:00`);
-    if (daysBetween(today, latest) === 1) {
-      expected = latest;
-    }
-  }
-
-  let streak = 0;
-  for (const row of trackedRows) {
-    const current = new Date(`${row.date}T00:00:00`);
-    if (daysBetween(expected, current) === 0) {
-      streak += 1;
-      expected.setDate(expected.getDate() - 1);
-    } else {
-      break;
-    }
-  }
-
-  return streak;
-};
-
-const calculateEatHomeCurrentStreak = (trackedRows, now) => {
-  if (trackedRows.length === 0) {
-    return 0;
-  }
+const calculateConsecutiveStreak = (trackedRows, now, categoryFilter = null) => {
+  if (trackedRows.length === 0) return 0;
 
   const today = new Date(now);
   today.setHours(0, 0, 0, 0);
   let expected = toIsoDate(today);
-  let index = 0;
 
   if (trackedRows[0].date !== expected) {
     const latest = new Date(`${trackedRows[0].date}T00:00:00`);
-    if (daysBetween(today, latest) !== 1) {
-      return 0;
-    }
+    if (daysBetween(today, latest) !== 1) return 0;
     expected = trackedRows[0].date;
   }
 
   let streak = 0;
-
-  while (index < trackedRows.length) {
-    const row = trackedRows[index];
-
-    if (row.date !== expected || row.category !== "ate_home") {
-      break;
-    }
-
+  for (const row of trackedRows) {
+    if (row.date !== expected) break;
+    if (categoryFilter !== null && row.category !== categoryFilter) break;
     streak += 1;
     const current = new Date(`${row.date}T00:00:00`);
     current.setDate(current.getDate() - 1);
     expected = toIsoDate(current);
-    index += 1;
   }
 
   return streak;
 };
-
-const calculateCurrentLoggedStreak = (trackedRows, now) => calculateStreak(trackedRows, now);
 
 const hasBalancedMonthWindow = (windowRows) => {
   const ateOutDays = windowRows.filter((row) => row.category === "ate_out").length;
@@ -130,70 +87,43 @@ const hasBalancedMonthWindow = (windowRows) => {
 const hasTakeawayLightWindow = (windowRows) =>
   windowRows.filter((row) => row.category === "takeaway").length <= 5;
 
+const CONTINUOUS_WINDOW_CONFIG = {
+  balanced_month_30: { hardBreakCategory: "takeaway", limitCategory: "ate_out", limit: 5 },
+  takeaway_light_30: { hardBreakCategory: null, limitCategory: "takeaway", limit: 5 }
+};
+
 const calculateContinuousWindowProgress = (badgeId, windowRows) => {
-  if (badgeId === "balanced_month_30") {
-    let progress = 0;
-    let ateOutDays = 0;
-    const reversedRows = [...windowRows].reverse();
+  const config = CONTINUOUS_WINDOW_CONFIG[badgeId];
+  if (!config) return 0;
 
-    for (const row of reversedRows) {
-      if (row.category === "takeaway") {
-        break;
-      }
+  let progress = 0;
+  let limitCount = 0;
 
-      if (row.category === "ate_out") {
-        ateOutDays += 1;
-        if (ateOutDays > 5) {
-          break;
-        }
-      }
-
-      progress += 1;
-      if (progress === 30) {
-        break;
-      }
+  for (const row of [...windowRows].reverse()) {
+    if (config.hardBreakCategory && row.category === config.hardBreakCategory) break;
+    if (row.category === config.limitCategory) {
+      limitCount += 1;
+      if (limitCount > config.limit) break;
     }
-
-    return progress;
+    progress += 1;
+    if (progress === 30) break;
   }
 
-  if (badgeId === "takeaway_light_30") {
-    let progress = 0;
-    let takeawayDays = 0;
-    const reversedRows = [...windowRows].reverse();
-
-    for (const row of reversedRows) {
-      if (row.category === "takeaway") {
-        takeawayDays += 1;
-        if (takeawayDays > 5) {
-          break;
-        }
-      }
-
-      progress += 1;
-      if (progress === 30) {
-        break;
-      }
-    }
-
-    return progress;
-  }
-
-  return 0;
+  return progress;
 };
 
 const getCurrentContinuousRows = (trackedRows, now) => {
-  const streakLength = calculateCurrentLoggedStreak(trackedRows, now);
+  const streakLength = calculateConsecutiveStreak(trackedRows, now);
   return trackedRows.slice(0, streakLength).reverse();
 };
 
-const buildBadgeProgress = (trackedRows, now) => {
-  const chronologicalRows = [...trackedRows].reverse();
+const buildHomeStreakCounts = (chronologicalRows) => {
+  const homeStreakBadges = HOME_STREAK_BADGES.filter((b) => b.type === "home_streak");
+  const earnedDates = new Map();
+  const rewardCounts = new Map(HOME_STREAK_BADGES.map((b) => [b.id, 0]));
   let currentRun = 0;
   let longestRun = 0;
   let homeDays = 0;
-  const earnedDates = new Map();
-  const rewardCounts = new Map(HOME_STREAK_BADGES.map((badge) => [badge.id, 0]));
 
   for (const row of chronologicalRows) {
     if (row.category === "ate_home") {
@@ -201,11 +131,10 @@ const buildBadgeProgress = (trackedRows, now) => {
       currentRun += 1;
       longestRun = Math.max(longestRun, currentRun);
 
-      for (const badge of HOME_STREAK_BADGES.filter((item) => item.type === "home_streak")) {
+      for (const badge of homeStreakBadges) {
         if (currentRun >= badge.streak && !earnedDates.has(badge.id)) {
           earnedDates.set(badge.id, row.date);
         }
-
         if (currentRun === badge.streak) {
           rewardCounts.set(badge.id, rewardCounts.get(badge.id) + 1);
         }
@@ -215,11 +144,13 @@ const buildBadgeProgress = (trackedRows, now) => {
     }
   }
 
+  return { longestRun, homeDays, earnedDates, rewardCounts };
+};
+
+const buildContinuousWindowCounts = (chronologicalRows, earnedDates, rewardCounts) => {
+  const continuousWindowState = { balanced_month_30: false, takeaway_light_30: false };
   let continuousRun = [];
-  const continuousWindowState = {
-    balanced_month_30: false,
-    takeaway_light_30: false
-  };
+
   for (const row of chronologicalRows) {
     const previous = continuousRun[continuousRun.length - 1];
     if (!previous) {
@@ -241,19 +172,15 @@ const buildBadgeProgress = (trackedRows, now) => {
         { id: "takeaway_light_30", passed: hasTakeawayLightWindow(latestWindow) }
       ];
 
-      for (const badgeCheck of badgeChecks) {
-        if (!badgeCheck.passed) {
-          continuousWindowState[badgeCheck.id] = false;
+      for (const { id, passed } of badgeChecks) {
+        if (!passed) {
+          continuousWindowState[id] = false;
           continue;
         }
-
-        if (!earnedDates.has(badgeCheck.id)) {
-          earnedDates.set(badgeCheck.id, row.date);
-        }
-
-        if (!continuousWindowState[badgeCheck.id]) {
-          rewardCounts.set(badgeCheck.id, (rewardCounts.get(badgeCheck.id) ?? 0) + 1);
-          continuousWindowState[badgeCheck.id] = true;
+        if (!earnedDates.has(id)) earnedDates.set(id, row.date);
+        if (!continuousWindowState[id]) {
+          rewardCounts.set(id, (rewardCounts.get(id) ?? 0) + 1);
+          continuousWindowState[id] = true;
         }
       }
     } else {
@@ -261,34 +188,39 @@ const buildBadgeProgress = (trackedRows, now) => {
       continuousWindowState.takeaway_light_30 = false;
     }
   }
+};
 
-  const currentStreak = calculateEatHomeCurrentStreak(trackedRows, now);
-  const currentContinuousRows = getCurrentContinuousRows(trackedRows, now);
-  const currentWindowRows = currentContinuousRows.slice(-30);
-  const badges = HOME_STREAK_BADGES.map((badge) => ({
-    ...badge,
-    unlocked: earnedDates.has(badge.id),
-    earnedOn: earnedDates.get(badge.id) ?? null,
-    rewardCount: rewardCounts.get(badge.id) ?? 0,
-    progress:
+const buildBadgeProgress = (trackedRows, now) => {
+  const chronologicalRows = [...trackedRows].reverse();
+  const { longestRun, homeDays, earnedDates, rewardCounts } = buildHomeStreakCounts(chronologicalRows);
+  buildContinuousWindowCounts(chronologicalRows, earnedDates, rewardCounts);
+
+  const currentStreak = calculateConsecutiveStreak(trackedRows, now, "ate_home");
+  const currentWindowRows = getCurrentContinuousRows(trackedRows, now).slice(-30);
+
+  const badges = HOME_STREAK_BADGES.map((badge) => {
+    const progress =
       badge.type === "continuous_window"
         ? calculateContinuousWindowProgress(badge.id, currentWindowRows)
-        : Math.min(currentStreak, badge.streak),
-    remaining:
-      badge.type === "continuous_window"
-        ? Math.max(badge.streak - calculateContinuousWindowProgress(badge.id, currentWindowRows), 0)
-        : Math.max(badge.streak - currentStreak, 0)
-  }));
+        : Math.min(currentStreak, badge.streak);
 
-  const unlockedCount = badges.filter((badge) => badge.unlocked).length;
+    return {
+      ...badge,
+      unlocked: earnedDates.has(badge.id),
+      earnedOn: earnedDates.get(badge.id) ?? null,
+      rewardCount: rewardCounts.get(badge.id) ?? 0,
+      progress,
+      remaining: Math.max(badge.streak - progress, 0)
+    };
+  });
 
   return {
     currentStreak,
     longestStreak: longestRun,
     totalHomeDays: homeDays,
-    unlockedCount,
+    unlockedCount: badges.filter((b) => b.unlocked).length,
     totalBadges: badges.length,
-    nextBadge: badges.find((badge) => !badge.unlocked) ?? null,
+    nextBadge: badges.find((b) => !b.unlocked) ?? null,
     badges
   };
 };
@@ -323,6 +255,8 @@ export const buildDashboardResponse = (repository, days, now = new Date()) => {
   );
   const { summary, timeline } = buildTimeline({ start, end, entriesByDate });
 
+  const trackedDates = repository.getTrackedDatesDesc();
+
   return {
     summary,
     timeline,
@@ -331,8 +265,8 @@ export const buildDashboardResponse = (repository, days, now = new Date()) => {
       category: row.category,
       amountPence: row.amount_pence ?? null
     })),
-    streak: calculateStreak(repository.getTrackedDatesDesc(), now),
+    streak: calculateConsecutiveStreak(trackedDates, now),
     totalTracked: repository.getTotalTracked(),
-    rewards: buildBadgeProgress(repository.getTrackedDatesDesc(), now)
+    rewards: buildBadgeProgress(trackedDates, now)
   };
 };
