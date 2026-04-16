@@ -15,23 +15,23 @@ Host Meal Habit Tracker on the public internet while enforcing a **gateway-based
 
 ## Recommended Architecture
 
-## Edge and gateway (required)
+### Edge and gateway (required)
 
 Use **Cloudflare Zero Trust Access** as the front-door gateway:
 
 1. DNS for `meals.yourdomain.com` managed in Cloudflare.
 2. Cloudflare Access policy set to **allow only your email identity**.
-3. Optional second factor via your identity provider (Google/GitHub/Microsoft).
+3. Second factor via **Google** as the identity provider (authenticate with your Google account).
 4. Session duration kept short (for example, 12 hours).
 
-## Origin hosting (app runtime)
+### Origin hosting (app runtime)
 
 - Host the app on a Linux VM or container platform.
 - Run your existing Docker image (`Express serves API + built React`).
 - Keep SQLite on persistent disk/volume.
 - Terminate TLS at Cloudflare; keep encrypted origin transport using Cloudflare Tunnel.
 
-## Network path (critical)
+### Network path (critical)
 
 - Prefer **Cloudflare Tunnel (`cloudflared`)** from origin to Cloudflare.
 - Do **not** open port `3001` publicly on the VM.
@@ -105,6 +105,7 @@ Create one app policy for `meals.yourdomain.com`:
 - No inbound app port opened on internet.
 - VM firewall denies external `3001` and proxy ports.
 - `cloudflared` service authenticates outbound tunnel to Cloudflare.
+- Update `docker-compose.yml` port binding from `"3001:3001"` to `"127.0.0.1:3001:3001"` so the container only listens on loopback and the tunnel can reach it without the port being reachable from outside the VM.
 
 ### If using public reverse proxy (fallback)
 
@@ -202,14 +203,14 @@ Create one app policy for `meals.yourdomain.com`:
 
 ## Implementation Timeline (2 Weeks)
 
-## Week 1
+### Week 1
 
 - Add app hardening (env config, health, logs, security middleware).
 - Set up Cloudflare zone, Access app, and policy.
 - Configure tunnel and route hostname to origin service.
 - Lock firewall and verify origin is inaccessible directly.
 
-## Week 2
+### Week 2
 
 - Implement CI/CD tagging + pinned deploy workflow.
 - Add backup automation and alerting.
