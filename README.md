@@ -74,13 +74,27 @@ This project is intended as a portfolio piece that demonstrates:
 .
 ├── src/              # React frontend
 ├── server/           # Express API and SQLite setup
+├── shared/           # Shared badge definitions and constants
+├── test/             # Vitest unit and integration tests
 ├── data/             # SQLite database created at runtime
+├── .devcontainer/    # VS Code Dev Container configuration
 ├── Dockerfile
 ├── docker-compose.yml
 └── package.json
 ```
 
 ## Local Development
+
+### Dev Container (recommended)
+
+Open the repo in VS Code and select **Reopen in Container** when prompted, or run the **Dev Containers: Reopen in Container** command. The container installs all dependencies automatically via `postCreateCommand`.
+
+Forwarded ports:
+
+- Frontend UI: `http://localhost:5173`
+- API server: `http://localhost:3001`
+
+### Without a container
 
 Install dependencies and start both the frontend and backend:
 
@@ -169,4 +183,4 @@ The response includes:
 
 - The database file is created automatically on first run.
 - Saving a second entry for the same date replaces the previous category for that day.
-- The current repository does not include an automated test suite yet.
+- Run `npm test` to execute the full test suite (Vitest + supertest).
